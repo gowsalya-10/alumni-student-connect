@@ -1,0 +1,122 @@
+/* Alumni Impact Hub — Shared Design Tokens (CSS variables)
+   Import this ONE file in every app root (or copy verbatim). Values are HSL
+   triplets (no hsl() wrapper) so Tailwind's `hsl(var(--x))` pattern works. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 14px;
+
+    /* Neutral surface */
+    --background: 0 0% 100%;
+    --foreground: 222 20% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 20% 12%;
+
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 246 80% 60%;
+
+    /* Brand — indigo/violet primary, keeps a "career-tech" not "college CRUD" feel */
+    --primary: 246 80% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 16% 96%;
+    --secondary-foreground: 222 20% 12%;
+
+    --accent: 199 89% 56%;         /* sky blue — links, secondary CTAs */
+    --accent-foreground: 0 0% 100%;
+
+    --success: 152 60% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 26 30% 12%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Role accents — used for small badges/highlights that signal "you're in
+       the student/alumni/admin area", not for whole-page theming */
+    --student-accent: 246 80% 60%;   /* indigo */
+    --alumni-accent: 262 60% 55%;    /* violet */
+    --admin-accent: 220 14% 30%;     /* slate */
+
+    /* Impact / rewards accent — warm gold, distinct from brand indigo so
+       points/wallet/badges visually "pop" as a distinct reward layer */
+    --impact-accent: 38 92% 50%;
+  }
+
+  .dark {
+    --background: 222 24% 8%;
+    --foreground: 220 20% 96%;
+
+    --card: 222 22% 11%;
+    --card-foreground: 220 20% 96%;
+
+    --muted: 222 18% 15%;
+    --muted-foreground: 220 10% 65%;
+
+    --border: 222 16% 20%;
+    --input: 222 16% 20%;
+    --ring: 246 80% 65%;
+
+    --primary: 246 80% 65%;
+    --primary-foreground: 222 24% 8%;
+
+    --secondary: 222 18% 15%;
+    --secondary-foreground: 220 20% 96%;
+
+    --accent: 199 89% 60%;
+    --accent-foreground: 222 24% 8%;
+
+    --success: 152 55% 48%;
+    --success-foreground: 222 24% 8%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 26 30% 10%;
+
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 222 24% 8%;
+
+    --student-accent: 246 80% 68%;
+    --alumni-accent: 262 60% 65%;
+    --admin-accent: 220 12% 70%;
+
+    --impact-accent: 38 92% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Reusable visual primitives referenced across all three teammates' work */
+@layer components {
+  .surface-card {
+    @apply bg-card text-card-foreground rounded-2xl border border-border shadow-card p-6;
+  }
+  .skill-chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground;
+  }
+  .stat-ring-label {
+    @apply text-2xl font-display font-bold text-foreground;
+  }
+}
