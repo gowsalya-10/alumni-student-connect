@@ -96,6 +96,26 @@ class StudentProfile(Base):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
+class AlumniProfile(Base):
+    __tablename__ = "alumni_profiles"
+
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    name = Column(String(150), nullable=False)
+    photo_url = Column(Text)
+    current_role = Column(String(200))
+    company = Column(String(200))
+    domain = Column(String(200))
+    industry = Column(String(200))
+    location = Column(String(200))
+    skills = Column(Text)  # JSON array stored as text
+    mentorship_interests = Column(Text)  # JSON array stored as text
+    experience = Column(Text)
+    education = Column(Text)
+    bio = Column(Text)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
 class Skill(Base):
     __tablename__ = "skills"
 

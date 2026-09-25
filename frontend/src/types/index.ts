@@ -55,3 +55,20 @@ export interface CareerRoadmap {
   estimated_focus: string;
   explanation: string;
 }
+
+export interface AlumniProfile {
+  user_id: string;
+  name: string;
+  photo_url: string | null;
+  current_role: string | null;
+  company: string | null;
+  domain: string | null;
+  industry: string | null;
+  location: string | null;
+  skills: string[];
+  mentorship_interests: string[];
+  experience: string | null;
+  education: string | null;
+  bio: string | null;
+  is_verified: boolean;
+}

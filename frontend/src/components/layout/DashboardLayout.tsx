@@ -21,7 +21,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Career Navigator', href: '/career-navigator', icon: <Compass /> },
     { name: 'Skill Gap', href: '/skills', icon: <Target /> },
     { name: 'Resume Vault', href: '/resume', icon: <FileText /> },
-    { name: 'Mentors', href: '/mentors', icon: <Users /> },
+    { name: 'Alumni', href: '/alumni', icon: <Users /> },
   ].map(item => ({
     ...item,
     isActive: pathname === item.href,
