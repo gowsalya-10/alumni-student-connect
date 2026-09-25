@@ -156,3 +156,61 @@ async def update_skills(
         
     db.commit()
     return added_skills
+
+from models import Resume, CareerRoadmap, RoadmapPhase
+
+class DashboardResponse(BaseModel):
+    profile: StudentProfileResponse
+    skills: List[str]
+    has_resume: bool
+    roadmap_phases: List[str]
+
+@router.get("/dashboard", response_model=DashboardResponse)
+async def get_dashboard(
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    # 1. Profile
+    profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+        
+    profile_dict = profile.__dict__.copy()
+    if profile.mentorship_interests:
+        try:
+            profile_dict["mentorship_interests"] = json.loads(profile.mentorship_interests)
+        except json.JSONDecodeError:
+            profile_dict["mentorship_interests"] = []
+    else:
+        profile_dict["mentorship_interests"] = []
+        
+    # 2. Skills
+    student_skills = db.query(StudentSkill).filter(StudentSkill.student_id == current_user.id).all()
+    skill_ids = [s.skill_id for s in student_skills]
+    skills = []
+    if skill_ids:
+        skills_db = db.query(Skill).filter(Skill.id.in_(skill_ids)).all()
+        skills = [s.name for s in skills_db]
+
+    # 3. Resume Check
+    resume = db.query(Resume).filter(Resume.student_id == current_user.id).first()
+    has_resume = resume is not None and resume.primary_version_id is not None
+    
+    # 4. Roadmap Check
+    roadmap = db.query(CareerRoadmap).filter(
+        CareerRoadmap.student_id == current_user.id,
+        CareerRoadmap.status == "active"
+    ).first()
+    
+    roadmap_phases = []
+    if roadmap:
+        phases = db.query(RoadmapPhase).filter(RoadmapPhase.roadmap_id == roadmap.id).order_by(RoadmapPhase.order_index).all()
+        roadmap_phases = [p.phase_name for p in phases]
+
+    return DashboardResponse(
+        profile=profile_dict,
+        skills=skills,
+        has_resume=has_resume,
+        roadmap_phases=roadmap_phases
+    )
+

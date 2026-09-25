@@ -16,6 +16,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(student.router)
+from routers import roadmap
+app.include_router(roadmap.router)
 
 @app.get("/")
 async def root():
