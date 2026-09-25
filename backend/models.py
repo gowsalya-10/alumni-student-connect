@@ -197,3 +197,24 @@ class ResumeVersion(Base):
     __table_args__ = (
         CheckConstraint('health_score BETWEEN 0 AND 100', name='check_health_score'),
     )
+
+class Mentorship(Base):
+    __tablename__ = "mentorships"
+    id = Column(String, primary_key=True)
+    student_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
+    alumni_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
+    message = Column(Text)
+    status = Column(String(50), default="pending")  # pending, accepted, declined, cancelled, completed
+    requested_at = Column(DateTime, nullable=False, server_default=func.now())
+    responded_at = Column(DateTime)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+class MentorshipInteraction(Base):
+    __tablename__ = "mentorship_interactions"
+    id = Column(String, primary_key=True)
+    mentorship_id = Column(String, ForeignKey("mentorships.id", ondelete="CASCADE"))
+    interaction_type = Column(String(100))
+    duration_minutes = Column(Integer)
+    notes = Column(Text)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())

@@ -10,27 +10,37 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, allowedRoles = ['student', 'alumni'] }: DashboardLayoutProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
-  const navItems = [
+  const studentNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: <Home /> },
+    { name: 'Mentorship', href: '/mentorship', icon: <Target /> },
     { name: 'Career Navigator', href: '/career-navigator', icon: <Compass /> },
     { name: 'Skill Gap', href: '/skills', icon: <Target /> },
     { name: 'Resume Vault', href: '/resume', icon: <FileText /> },
     { name: 'Alumni', href: '/alumni', icon: <Users /> },
-  ].map(item => ({
+  ];
+
+  const alumniNavItems = [
+    { name: 'Mentorship Requests', href: '/alumni-mentorship', icon: <Target /> },
+  ];
+
+  const baseItems = user?.role === 'alumni' ? alumniNavItems : studentNavItems;
+
+  const navItems = baseItems.map(item => ({
     ...item,
     isActive: pathname === item.href,
   }));
 
-  const mobileItems = navItems.slice(0, 4); // Only fit 4 on mobile easily
+  const mobileItems = navItems.slice(0, 4);
 
   return (
-    <ProtectedRoute allowedRoles={['student']}>
+    <ProtectedRoute allowedRoles={allowedRoles}>
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
         <Sidebar
           items={navItems}

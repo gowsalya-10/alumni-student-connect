@@ -9,23 +9,45 @@ import { Avatar } from '@/components/ui/Avatar';
 import { SkillChip } from '@/components/ui/SkillChip';
 import { Skeleton } from '@/components/feedback/Skeleton';
 import { Alert } from '@/components/feedback/Alert';
-import { MapPin, Briefcase, GraduationCap, Mail, ArrowLeft, MessageSquarePlus } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { MapPin, Briefcase, GraduationCap, Mail, ArrowLeft, MessageSquarePlus, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
-import { AlumniProfile } from '@/types';
+import { AlumniProfile, MentorshipRequest } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AlumniProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<AlumniProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Mentorship state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [requestMessage, setRequestMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState('');
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [existingRequest, setExistingRequest] = useState<MentorshipRequest | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndRequests = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/api/v1/alumni/${params.id}`);
-        setProfile(res.data);
+        const [profileRes, requestsRes] = await Promise.all([
+          api.get(`/api/v1/alumni/${params.id}`),
+          user?.role === 'student' ? api.get('/api/v1/mentorship/my') : Promise.resolve({ data: [] })
+        ]);
+        setProfile(profileRes.data);
+        
+        if (user?.role === 'student') {
+          const reqs: MentorshipRequest[] = requestsRes.data;
+          const pendingOrActive = reqs.find(r => r.alumni_id === params.id && (r.status === 'pending' || r.status === 'accepted'));
+          if (pendingOrActive) {
+            setExistingRequest(pendingOrActive);
+          }
+        }
       } catch (err) {
         setError('Failed to load alumni profile.');
       } finally {
@@ -33,9 +55,51 @@ export default function AlumniProfilePage() {
       }
     };
     if (params.id) {
-      fetchProfile();
+      fetchProfileAndRequests();
     }
-  }, [params.id]);
+  }, [params.id, user]);
+
+  const handleRequestMentorship = async () => {
+    if (!requestMessage.trim()) {
+      setRequestError('Please explain what you need guidance with.');
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      setRequestError('');
+      
+      await api.post('/api/v1/mentorship/requests', {
+        alumni_id: params.id,
+        message: requestMessage
+      });
+      
+      setRequestSuccess(true);
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setExistingRequest({
+          id: 'temp',
+          student_id: user?.id || '',
+          alumni_id: params.id as string,
+          student_name: '',
+          student_department: null,
+          student_year: null,
+          student_goal: null,
+          alumni_name: profile?.name || '',
+          alumni_role: profile?.current_role || '',
+          alumni_company: profile?.company || '',
+          message: requestMessage,
+          status: 'pending',
+          requested_at: new Date().toISOString()
+        });
+      }, 2000);
+      
+    } catch (err: any) {
+      setRequestError(err.response?.data?.detail || 'Failed to send request.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -80,7 +144,6 @@ export default function AlumniProfilePage() {
         </Button>
 
         <Card className="p-6 md:p-8 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden relative">
-          {/* Header decorative bg */}
           <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 dark:from-blue-900/40 dark:to-indigo-900/40" />
           
           <div className="relative pt-12 flex flex-col md:flex-row gap-6 md:gap-10">
@@ -107,11 +170,19 @@ export default function AlumniProfilePage() {
                 </div>
                 
                 <div className="shrink-0">
-                  {/* Future mentorship feature button */}
-                  <Button className="gap-2 w-full md:w-auto shadow-sm hover:shadow-md transition-shadow">
-                    <MessageSquarePlus className="h-4 w-4" />
-                    Request Mentorship
-                  </Button>
+                  {user?.role === 'student' && (
+                    existingRequest ? (
+                      <Button variant="outline" disabled className="gap-2 w-full md:w-auto">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        {existingRequest.status === 'pending' ? 'Request Pending' : 'Mentorship Active'}
+                      </Button>
+                    ) : (
+                      <Button onClick={() => setIsModalOpen(true)} className="gap-2 w-full md:w-auto shadow-sm hover:shadow-md transition-shadow">
+                        <MessageSquarePlus className="h-4 w-4" />
+                        Request Mentorship
+                      </Button>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -139,7 +210,6 @@ export default function AlumniProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
-            
             {profile.bio && (
               <Card className="p-6 border-gray-200 dark:border-gray-800">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h2>
@@ -172,7 +242,6 @@ export default function AlumniProfilePage() {
                 </div>
               </Card>
             )}
-            
           </div>
 
           <div className="space-y-6">
@@ -204,9 +273,57 @@ export default function AlumniProfilePage() {
                 <p className="text-sm text-gray-500">Open to connecting.</p>
               )}
             </Card>
-            
           </div>
         </div>
+
+        {/* Request Mentorship Modal */}
+        <Modal 
+          isOpen={isModalOpen} 
+          onClose={() => !submitting && !requestSuccess && setIsModalOpen(false)}
+          title="Request Mentorship"
+          description={`Connect with ${profile.name} for career guidance.`}
+          footer={
+            !requestSuccess ? (
+              <>
+                <Button variant="ghost" onClick={() => setIsModalOpen(false)} disabled={submitting}>Cancel</Button>
+                <Button onClick={handleRequestMentorship} disabled={submitting}>
+                  {submitting ? 'Sending...' : 'Send Request'}
+                </Button>
+              </>
+            ) : null
+          }
+        >
+          {requestSuccess ? (
+            <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Request Sent Successfully!</h3>
+              <p className="text-sm text-gray-500">We'll notify you when they respond.</p>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                <p className="font-medium text-gray-900 dark:text-white">{profile.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{profile.current_role} at {profile.company}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  What would you like guidance with?
+                </label>
+                <textarea
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 min-h-[100px]"
+                  placeholder="E.g., I'm a 3rd year student interested in your work at Google and would love some resume feedback..."
+                  value={requestMessage}
+                  onChange={(e) => setRequestMessage(e.target.value)}
+                />
+              </div>
+
+              {requestError && <Alert variant="error" title="Error">{requestError}</Alert>}
+            </div>
+          )}
+        </Modal>
 
       </div>
     </DashboardLayout>

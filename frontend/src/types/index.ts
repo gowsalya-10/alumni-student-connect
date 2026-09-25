@@ -72,3 +72,28 @@ export interface AlumniProfile {
   bio: string | null;
   is_verified: boolean;
 }
+
+export interface MentorshipRequest {
+  id: string;
+  student_id: string;
+  alumni_id: string;
+  student_name: string;
+  student_department: string | null;
+  student_year: number | null;
+  student_goal: string | null;
+  alumni_name: string;
+  alumni_role: string | null;
+  alumni_company: string | null;
+  message: string;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed';
+  requested_at: string;
+}
+
+export interface MentorshipInteraction {
+  id: string;
+  interaction_type: string;
+  duration_minutes: number;
+  notes: string;
+  created_at: string;
+}
+
