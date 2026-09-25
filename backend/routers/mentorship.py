@@ -6,10 +6,22 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from database import get_db
-from models import User, Mentorship, MentorshipInteraction, AlumniProfile, StudentProfile
-from auth import require_role
+from models import User, Mentorship, MentorshipInteraction, AlumniProfile, StudentProfile, MentorshipRating, AlumniImpact, RewardTransaction, Notification
+from auth import require_role, get_current_user
 
 router = APIRouter(prefix="/api/v1/mentorship", tags=["mentorship"])
+
+# Helper to create notifications
+def create_notification(db: Session, user_id: str, title: str, message: str, type: str):
+    notif = Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title=title,
+        message=message,
+        type=type
+    )
+    db.add(notif)
+    return notif
 
 # Pydantic models
 class MentorshipRequestCreate(BaseModel):
@@ -43,6 +55,10 @@ class MentorshipResponse(BaseModel):
     status: str
     requested_at: datetime
 
+class RatingBody(BaseModel):
+    rating: int
+    review: Optional[str]
+
 def get_mentorship_response(req: Mentorship, student: StudentProfile, alumni: AlumniProfile) -> MentorshipResponse:
     return MentorshipResponse(
         id=req.id,
@@ -60,13 +76,45 @@ def get_mentorship_response(req: Mentorship, student: StudentProfile, alumni: Al
         requested_at=req.requested_at
     )
 
+def update_alumni_impact(db: Session, alumni_id: str):
+    impact = db.query(AlumniImpact).filter(AlumniImpact.alumni_id == alumni_id).first()
+    if not impact:
+        impact = AlumniImpact(alumni_id=alumni_id)
+        db.add(impact)
+        
+    requests = db.query(Mentorship).filter(Mentorship.alumni_id == alumni_id).all()
+    req_ids = [r.id for r in requests]
+    interactions = db.query(MentorshipInteraction).filter(MentorshipInteraction.mentorship_id.in_(req_ids)).all()
+    
+    impact.total_interactions = len(interactions)
+    
+    active_student_ids = set()
+    for i in interactions:
+        req = next((r for r in requests if r.id == i.mentorship_id), None)
+        if req:
+            active_student_ids.add(req.student_id)
+    impact.students_helped = len(active_student_ids)
+    
+    completed = [r for r in requests if r.status == "completed"]
+    impact.completed_mentorships = len(completed)
+    
+    ratings = db.query(MentorshipRating).filter(MentorshipRating.alumni_id == alumni_id).all()
+    if ratings:
+        impact.average_rating = round(sum(r.rating for r in ratings) / len(ratings), 2)
+    else:
+        impact.average_rating = 0.0
+        
+    # Formula: 10 per completed + 5 per interaction + (avg_rating * 2)
+    score = (impact.completed_mentorships * 10) + (impact.total_interactions * 5) + (int(impact.average_rating) * 2)
+    impact.total_score = score
+    db.commit()
+
 @router.post("/requests", response_model=MentorshipResponse)
 async def create_request(
     body: MentorshipRequestCreate,
     current_user: User = Depends(require_role("student")),
     db: Session = Depends(get_db)
 ):
-    # Prevent duplicate pending
     existing = db.query(Mentorship).filter(
         Mentorship.student_id == current_user.id,
         Mentorship.alumni_id == body.alumni_id,
@@ -90,6 +138,14 @@ async def create_request(
         status="pending"
     )
     db.add(req)
+    
+    create_notification(
+        db, body.alumni_id, 
+        "New Mentorship Request", 
+        f"{student.name} has requested mentorship from you.", 
+        "mentorship_request"
+    )
+    
     db.commit()
     db.refresh(req)
     
@@ -158,6 +214,15 @@ async def accept_request(
         
     req.status = "accepted"
     req.responded_at = datetime.utcnow()
+    
+    alumni = db.query(AlumniProfile).filter(AlumniProfile.user_id == current_user.id).first()
+    create_notification(
+        db, req.student_id, 
+        "Mentorship Accepted", 
+        f"{alumni.name} has accepted your mentorship request.", 
+        "mentorship_accepted"
+    )
+    
     db.commit()
     return {"message": "Request accepted"}
 
@@ -177,8 +242,48 @@ async def decline_request(
         
     req.status = "declined"
     req.responded_at = datetime.utcnow()
+    
+    alumni = db.query(AlumniProfile).filter(AlumniProfile.user_id == current_user.id).first()
+    create_notification(
+        db, req.student_id, 
+        "Mentorship Declined", 
+        f"{alumni.name} was unable to accept your request at this time.", 
+        "mentorship_declined"
+    )
+    
     db.commit()
     return {"message": "Request declined"}
+
+@router.put("/{id}/complete")
+async def complete_mentorship(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    req = db.query(Mentorship).filter(Mentorship.id == id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Mentorship not found")
+        
+    if req.student_id != current_user.id and req.alumni_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    if req.status != "accepted":
+        raise HTTPException(status_code=400, detail="Only accepted mentorships can be completed")
+        
+    req.status = "completed"
+    
+    if current_user.id == req.alumni_id:
+        # Alumni completed it -> notify student
+        create_notification(
+            db, req.student_id, 
+            "Mentorship Completed", 
+            "Your mentorship session was marked as complete. Please leave a rating!", 
+            "rating_reminder"
+        )
+    
+    db.commit()
+    update_alumni_impact(db, req.alumni_id)
+    return {"message": "Mentorship marked as completed"}
 
 @router.post("/{id}/interactions", response_model=InteractionResponse)
 async def log_interaction(
@@ -199,7 +304,33 @@ async def log_interaction(
         notes=body.notes
     )
     db.add(interaction)
+    
+    # Reward points
+    points = body.duration_minutes // 10  # 1 point per 10 mins
+    if points > 0:
+        reward = RewardTransaction(
+            id=str(uuid.uuid4()),
+            alumni_id=current_user.id,
+            points=points,
+            reason=f"Logged interaction: {body.interaction_type}",
+            interaction_id=interaction.id
+        )
+        db.add(reward)
+        impact = db.query(AlumniImpact).filter(AlumniImpact.alumni_id == current_user.id).first()
+        if not impact:
+            impact = AlumniImpact(alumni_id=current_user.id)
+            db.add(impact)
+        impact.reward_points += points
+        
+        create_notification(
+            db, current_user.id, 
+            "Reward Points Earned", 
+            f"You earned {points} points for logging an interaction.", 
+            "reward_earned"
+        )
+    
     db.commit()
+    update_alumni_impact(db, current_user.id)
     db.refresh(interaction)
     
     return InteractionResponse(
@@ -213,14 +344,13 @@ async def log_interaction(
 @router.get("/{id}/interactions", response_model=List[InteractionResponse])
 async def get_interactions(
     id: str,
-    current_user: User = Depends(),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     req = db.query(Mentorship).filter(Mentorship.id == id).first()
     if not req:
         raise HTTPException(status_code=404, detail="Mentorship not found")
         
-    # Security: Only participants can view
     if req.student_id != current_user.id and req.alumni_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
         
@@ -234,3 +364,40 @@ async def get_interactions(
             created_at=i.created_at
         ) for i in interactions
     ]
+
+@router.post("/{id}/rating")
+async def rate_mentorship(
+    id: str,
+    body: RatingBody,
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    req = db.query(Mentorship).filter(Mentorship.id == id, Mentorship.student_id == current_user.id).first()
+    if not req or req.status != "completed":
+        raise HTTPException(status_code=400, detail="Only completed mentorships can be rated.")
+        
+    existing = db.query(MentorshipRating).filter(MentorshipRating.mentorship_id == req.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already rated this mentorship.")
+        
+    rating = MentorshipRating(
+        id=str(uuid.uuid4()),
+        mentorship_id=req.id,
+        student_id=current_user.id,
+        alumni_id=req.alumni_id,
+        rating=body.rating,
+        review=body.review
+    )
+    db.add(rating)
+    
+    student = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    create_notification(
+        db, req.alumni_id, 
+        "New Rating Received", 
+        f"{student.name} left a {body.rating}-star rating for your mentorship.", 
+        "new_rating"
+    )
+    
+    db.commit()
+    update_alumni_impact(db, req.alumni_id)
+    return {"message": "Rating submitted successfully"}

@@ -218,3 +218,46 @@ class MentorshipInteraction(Base):
     duration_minutes = Column(Integer)
     notes = Column(Text)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+class MentorshipRating(Base):
+    __tablename__ = "mentorship_ratings"
+    id = Column(String, primary_key=True)
+    mentorship_id = Column(String, ForeignKey("mentorships.id", ondelete="CASCADE"), unique=True)
+    student_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
+    alumni_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
+    rating = Column(Integer, nullable=False)
+    review = Column(Text)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    __table_args__ = (
+        CheckConstraint('rating >= 1 AND rating <= 5', name='check_rating'),
+    )
+
+class AlumniImpact(Base):
+    __tablename__ = "alumni_impact"
+    alumni_id = Column(String, ForeignKey("alumni_profiles.user_id", ondelete="CASCADE"), primary_key=True)
+    total_score = Column(Integer, default=0)
+    total_interactions = Column(Integer, default=0)
+    students_helped = Column(Integer, default=0)
+    completed_mentorships = Column(Integer, default=0)
+    average_rating = Column(Numeric(3, 2), default=0.0)
+    reward_points = Column(Integer, default=0)
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+class RewardTransaction(Base):
+    __tablename__ = "reward_transactions"
+    id = Column(String, primary_key=True)
+    alumni_id = Column(String, ForeignKey("alumni_profiles.user_id", ondelete="CASCADE"))
+    points = Column(Integer, nullable=False)
+    reason = Column(String(200))
+    interaction_id = Column(String, ForeignKey("mentorship_interactions.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
+    title = Column(String(200), nullable=False)
+    message = Column(Text)
+    type = Column(String(100))
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())

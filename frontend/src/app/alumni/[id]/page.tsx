@@ -14,12 +14,23 @@ import { MapPin, Briefcase, GraduationCap, Mail, ArrowLeft, MessageSquarePlus, C
 import api from '@/lib/api';
 import { AlumniProfile, MentorshipRequest } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { Star } from 'lucide-react';
+
+interface ImpactScore {
+  total_score: number;
+  total_interactions: number;
+  students_helped: number;
+  completed_mentorships: number;
+  average_rating: number;
+  reward_points: number;
+}
 
 export default function AlumniProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const [profile, setProfile] = useState<AlumniProfile | null>(null);
+  const [impact, setImpact] = useState<ImpactScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -35,11 +46,13 @@ export default function AlumniProfilePage() {
     const fetchProfileAndRequests = async () => {
       try {
         setLoading(true);
-        const [profileRes, requestsRes] = await Promise.all([
+        const [profileRes, impactRes, requestsRes] = await Promise.all([
           api.get(`/api/v1/alumni/${params.id}`),
+          api.get(`/api/v1/alumni/${params.id}/impact`).catch(() => ({ data: null })),
           user?.role === 'student' ? api.get('/api/v1/mentorship/my') : Promise.resolve({ data: [] })
         ]);
         setProfile(profileRes.data);
+        if (impactRes.data) setImpact(impactRes.data);
         
         if (user?.role === 'student') {
           const reqs: MentorshipRequest[] = requestsRes.data;
@@ -206,6 +219,29 @@ export default function AlumniProfilePage() {
               </div>
             </div>
           </div>
+          
+          {impact && impact.total_score > 0 && (
+            <div className="mt-8 border-t border-gray-100 dark:border-gray-800 pt-6">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Impact Breakdown</h3>
+              <div className="flex flex-wrap gap-4">
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800/50">
+                  <p className="text-xs font-medium opacity-80">Impact Score</p>
+                  <p className="text-xl font-bold">{impact.total_score}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Avg Rating</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                    {impact.average_rating > 0 ? impact.average_rating.toFixed(1) : 'N/A'}
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Completed Mentorships</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{impact.completed_mentorships}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

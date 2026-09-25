@@ -112,3 +112,59 @@ async def get_alumni_profile(
         bio=a.bio,
         is_verified=a.is_verified
     )
+
+from models import AlumniImpact, RewardTransaction
+from auth import get_current_user
+
+class AlumniImpactResponse(BaseModel):
+    total_score: int
+    total_interactions: int
+    students_helped: int
+    completed_mentorships: int
+    average_rating: float
+    reward_points: int
+
+@router.get("/{id}/impact", response_model=AlumniImpactResponse)
+async def get_alumni_impact(
+    id: str,
+    db: Session = Depends(get_db)
+):
+    impact = db.query(AlumniImpact).filter(AlumniImpact.alumni_id == id).first()
+    if not impact:
+        return AlumniImpactResponse(
+            total_score=0,
+            total_interactions=0,
+            students_helped=0,
+            completed_mentorships=0,
+            average_rating=0.0,
+            reward_points=0
+        )
+    return AlumniImpactResponse(
+        total_score=impact.total_score,
+        total_interactions=impact.total_interactions,
+        students_helped=impact.students_helped,
+        completed_mentorships=impact.completed_mentorships,
+        average_rating=float(impact.average_rating),
+        reward_points=impact.reward_points
+    )
+
+class RewardTransactionResponse(BaseModel):
+    id: str
+    points: int
+    reason: str
+    created_at: str
+
+@router.get("/my/rewards", response_model=List[RewardTransactionResponse])
+async def get_my_rewards(
+    current_user: User = Depends(require_role("alumni")),
+    db: Session = Depends(get_db)
+):
+    rewards = db.query(RewardTransaction).filter(RewardTransaction.alumni_id == current_user.id).order_by(RewardTransaction.created_at.desc()).all()
+    return [
+        RewardTransactionResponse(
+            id=r.id,
+            points=r.points,
+            reason=r.reason,
+            created_at=r.created_at.isoformat()
+        ) for r in rewards
+    ]
