@@ -110,3 +110,49 @@ async def complete_onboarding(
     profile.onboarding_completed = True
     db.commit()
     return {"message": "Onboarding completed successfully"}
+
+class SkillItem(BaseModel):
+    name: str
+
+@router.get("/skills", response_model=List[str])
+async def get_skills(
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    student_skills = db.query(StudentSkill).filter(StudentSkill.student_id == current_user.id).all()
+    skill_ids = [s.skill_id for s in student_skills]
+    
+    if not skill_ids:
+        return []
+        
+    skills = db.query(Skill).filter(Skill.id.in_(skill_ids)).all()
+    return [s.name for s in skills]
+
+@router.put("/skills", response_model=List[str])
+async def update_skills(
+    skills: List[str],
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    # Remove old skills
+    db.query(StudentSkill).filter(StudentSkill.student_id == current_user.id).delete()
+    
+    added_skills = []
+    for skill_name in skills:
+        skill_name = skill_name.strip()
+        if not skill_name:
+            continue
+            
+        skill = db.query(Skill).filter(Skill.name.ilike(skill_name)).first()
+        if not skill:
+            skill = Skill(name=skill_name, category="general")
+            db.add(skill)
+            db.commit()
+            db.refresh(skill)
+            
+        student_skill = StudentSkill(student_id=current_user.id, skill_id=skill.id, proficiency_pct=50)
+        db.add(student_skill)
+        added_skills.append(skill.name)
+        
+    db.commit()
+    return added_skills
