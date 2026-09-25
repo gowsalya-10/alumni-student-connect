@@ -30,3 +30,28 @@ export interface StudentProfile {
   career_readiness_pct: number;
   onboarding_completed: boolean;
 }
+
+export interface RoadmapMilestone {
+  id: string;
+  skill_name: string;
+  description: string;
+  difficulty: string;
+  estimated_time: string;
+  is_completed: boolean;
+}
+
+export interface RoadmapPhase {
+  id: string;
+  phase_name: string;
+  milestones: RoadmapMilestone[];
+}
+
+export interface CareerRoadmap {
+  id: string;
+  status: string;
+  phases: RoadmapPhase[];
+  career_goal: string;
+  recommended_domain: string;
+  estimated_focus: string;
+  explanation: string;
+}
