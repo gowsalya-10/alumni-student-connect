@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Select } from '@/components/ui/Select';
-import { Badge } from '@/components/ui/Badge';
 import { OnboardingData } from '@/app/onboarding/page';
 
 interface Props {

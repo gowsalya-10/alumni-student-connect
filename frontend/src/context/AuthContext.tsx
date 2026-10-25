@@ -41,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line
     checkAuth();
 
     const handleUnauthorized = () => {
@@ -53,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
-  }, [router]);
+  }, [checkAuth, router]);
 
   const login = async (token: string) => {
     localStorage.setItem('token', token);

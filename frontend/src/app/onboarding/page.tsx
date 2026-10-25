@@ -10,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/feedback/Alert';
-import { Skeleton } from '@/components/feedback/Skeleton';
 
 // Step components
 import { ProfileStep } from '@/components/onboarding/ProfileStep';
@@ -116,15 +115,11 @@ export default function OnboardingPage() {
     setIsSaving(true);
     try {
       // Save data before moving to next step
-      const payload: any = { ...data };
-      if (payload.year) {
-        payload.year = parseInt(payload.year, 10);
-      } else {
-        payload.year = null;
-      }
-      
-      // We don't send skills to the profile endpoint
-      const { skills, ...profilePayload } = payload;
+      const profilePayload = {
+        ...data,
+        year: data.year ? parseInt(data.year, 10) : null
+      };
+      delete (profilePayload as Record<string, unknown>).skills;
       
       await api.put('/api/v1/student/profile', profilePayload);
       
@@ -170,7 +165,7 @@ export default function OnboardingPage() {
       case 3:
         return <MentorshipStep data={data} updateData={updateData} />;
       case 4:
-        return <ResumeStep data={data} updateData={updateData} />;
+        return <ResumeStep />;
       case 5:
         return <CompleteStep />;
       default:

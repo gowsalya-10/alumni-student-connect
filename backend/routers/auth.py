@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 import uuid
 from database import get_db
-from models import User, StudentProfile
+from models import User, StudentProfile, AlumniProfile, AlumniImpact
 from auth import get_password_hash, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -50,6 +50,7 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
         role=user_role
     )
     db.add(new_user)
+    db.flush()
     
     if user_role == "student":
         student_profile = StudentProfile(
@@ -57,9 +58,35 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             name=request.name or "New Student"
         )
         db.add(student_profile)
-        
-    db.commit()
-    db.refresh(new_user)
+    elif user_role == "alumni":
+        alumni_profile = AlumniProfile(
+            user_id=user_id,
+            name=request.name or "New Alumni",
+            skills="[]",
+            mentorship_interests="[]",
+            is_verified=False
+        )
+        db.add(alumni_profile)
+        db.flush()
+        alumni_impact = AlumniImpact(
+            alumni_id=user_id,
+            total_score=0,
+            total_interactions=0,
+            students_helped=0,
+            completed_mentorships=0,
+            average_rating=0.0,
+            reward_points=0
+        )
+        db.add(alumni_impact)
+    try:
+        db.commit()
+        db.refresh(new_user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed. Please try again."
+        )
 
     # Generate access token
     access_token = create_access_token(data={"sub": new_user.id, "role": new_user.role})

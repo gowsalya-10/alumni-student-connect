@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/feedback/Skeleton';
 import { Alert } from '@/components/feedback/Alert';
-import { Star, Gift, TrendingUp, Users, CheckCircle2, Clock } from 'lucide-react';
+import { 
+  Star, Gift, TrendingUp, Users, Clock, 
+  Sparkles, MessageSquare, ArrowRight 
+} from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -42,8 +47,8 @@ export default function AlumniImpactPage() {
         ]);
         setImpact(impactRes.data);
         setRewards(rewardsRes.data);
-      } catch (err) {
-        setError('Failed to load impact data.');
+      } catch {
+        setError('Failed to load impact and reward data.');
       } finally {
         setLoading(false);
       }
@@ -54,14 +59,15 @@ export default function AlumniImpactPage() {
   if (loading) {
     return (
       <DashboardLayout allowedRoles={['alumni']}>
-        <div className="p-4 sm:p-8 space-y-6">
-          <Skeleton className="h-10 w-48 mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+        <div className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
+          <Skeleton className="h-10 w-48 rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <Skeleton className="h-32 rounded-2xl" />
+            <Skeleton className="h-32 rounded-2xl" />
+            <Skeleton className="h-32 rounded-2xl" />
+            <Skeleton className="h-32 rounded-2xl" />
           </div>
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 rounded-2xl" />
         </div>
       </DashboardLayout>
     );
@@ -71,7 +77,7 @@ export default function AlumniImpactPage() {
     return (
       <DashboardLayout allowedRoles={['alumni']}>
         <div className="p-4 sm:p-8 max-w-5xl mx-auto">
-          <Alert variant="error" title="Error">{error || 'Data not found'}</Alert>
+          <Alert variant="error" title="Notice">{error || 'Data unavailable'}</Alert>
         </div>
       </DashboardLayout>
     );
@@ -79,97 +85,155 @@ export default function AlumniImpactPage() {
 
   return (
     <DashboardLayout allowedRoles={['alumni']}>
-      <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Star className="h-8 w-8 text-yellow-500" />
-            Impact & Rewards
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Track the difference you are making and the reward points you've earned.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none">
-            <p className="text-indigo-100 font-medium mb-1">Impact Score</p>
-            <h2 className="text-4xl font-bold">{impact.total_score}</h2>
-            <p className="text-xs text-indigo-200 mt-2 flex items-center gap-1"><TrendingUp className="h-3 w-3"/> Deterministic algorithm</p>
-          </Card>
-          <Card className="p-6 bg-gradient-to-br from-yellow-400 to-orange-500 text-white border-none">
-            <p className="text-yellow-100 font-medium mb-1">Reward Points</p>
-            <h2 className="text-4xl font-bold">{impact.reward_points}</h2>
-            <p className="text-xs text-yellow-100 mt-2 flex items-center gap-1"><Gift className="h-3 w-3"/> Redeemable soon</p>
-          </Card>
-          <Card className="p-6 border-gray-200 dark:border-gray-800">
-            <p className="text-gray-500 dark:text-gray-400 font-medium mb-1 flex items-center gap-2">
-              <Star className="h-4 w-4 text-yellow-500" /> Avg Rating
-            </p>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {impact.average_rating > 0 ? impact.average_rating.toFixed(1) : 'N/A'}
-            </h2>
-          </Card>
-          <Card className="p-6 border-gray-200 dark:border-gray-800">
-            <p className="text-gray-500 dark:text-gray-400 font-medium mb-1 flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-500" /> Students Helped
-            </p>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{impact.students_helped}</h2>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="col-span-1 lg:col-span-2 space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Reward History</h2>
-            {rewards.length === 0 ? (
-              <Card className="p-8 text-center text-gray-500">
-                You haven't earned any reward points yet. Accept a mentorship and log interactions to earn points!
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {rewards.map(r => (
-                  <Card key={r.id} className="p-4 flex items-center justify-between border-l-4 border-l-yellow-500">
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">{r.reason}</h4>
-                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                        <Clock className="h-3 w-3" /> {new Date(r.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-lg font-bold text-yellow-600 dark:text-yellow-500">
-                      +{r.points} pts
-                    </div>
-                  </Card>
-                ))}
+      <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in font-sans">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                <Star className="h-5 w-5 fill-white text-white" />
               </div>
-            )}
+              Alumni Impact & Recognition Hub
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Your mentorship contributions, student ratings, and earned institutional reward points.
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">How it works</h2>
-            <Card className="p-6 space-y-4 bg-gray-50 dark:bg-gray-800/50">
-              <div className="flex gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white text-sm">Mentorship Completion</h4>
-                  <p className="text-xs text-gray-500 mt-1">Earn 10 impact score per completed mentorship.</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white text-sm">Interactions & Logging</h4>
-                  <p className="text-xs text-gray-500 mt-1">Earn 5 impact score per interaction, plus reward points (1pt per 10 mins).</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Star className="h-5 w-5 text-yellow-500 shrink-0" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white text-sm">Ratings</h4>
-                  <p className="text-xs text-gray-500 mt-1">Your average rating multiplies into your impact score.</p>
-                </div>
-              </div>
-            </Card>
-          </div>
+          <Link href="/alumni-mentorship">
+            <Button size="sm" className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs">
+              <MessageSquare className="h-4 w-4" /> Go to Mentorship Sessions
+            </Button>
+          </Link>
         </div>
+
+        {/* 4 Impact Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          
+          <Card className="p-5 bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-none rounded-3xl shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">
+                Total Impact Score
+              </p>
+              <h2 className="text-4xl font-extrabold mt-2 tracking-tight">
+                {impact.total_score}
+              </h2>
+            </div>
+            <p className="text-[11px] text-indigo-200 mt-4 flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" /> Weighted algorithmic scoring
+            </p>
+          </Card>
+
+          <Card className="p-5 bg-gradient-to-br from-amber-500 to-orange-600 text-white border-none rounded-3xl shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-100">
+                Reward Points
+              </p>
+              <h2 className="text-4xl font-extrabold mt-2 tracking-tight">
+                {impact.reward_points}
+              </h2>
+            </div>
+            <p className="text-[11px] text-amber-100 mt-4 flex items-center gap-1">
+              <Gift className="h-3 w-3" /> 1 pt per 10 mins coached
+            </p>
+          </Card>
+
+          <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-2xs flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Students Coached
+              </p>
+              <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-2 tracking-tight">
+                {impact.students_helped}
+              </h2>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-4 flex items-center gap-1">
+              <Users className="h-3 w-3 text-indigo-600" /> Across multiple engineering years
+            </p>
+          </Card>
+
+          <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-2xs flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Average Rating
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  {impact.average_rating > 0 ? impact.average_rating.toFixed(1) : '5.0'}
+                </h2>
+                <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-4">
+              From verified completed sessions
+            </p>
+          </Card>
+
+        </div>
+
+        {/* Gamification Explainer Banner */}
+        <div className="p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                How Impact & Reward Points Work
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 max-w-xl">
+                Earn 10 points per completed mentorship, 1 point per 10 minutes of logged 1:1 sessions, and bonus multipliers for 5-star ratings. Points are redeemable for campus speaker invitations and alumni honors.
+              </p>
+            </div>
+          </div>
+          <Link href="/alumni-mentorship">
+            <Button size="sm" variant="outline" className="text-xs shrink-0 border-indigo-200 text-indigo-700 dark:text-indigo-300">
+              Log Session Now <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Reward Transactions Table */}
+        <Card className="p-6 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-2xs">
+          <h3 className="font-bold text-base text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-indigo-600" />
+            Reward Points Activity Log
+          </h3>
+
+          {rewards.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-4">
+              No reward transactions recorded yet. Log sessions in the Mentorship Hub to start earning points.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                    <th className="pb-3 pl-2">Activity Description</th>
+                    <th className="pb-3 text-right">Points Earned</th>
+                    <th className="pb-3 text-right pr-2">Date & Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {rewards.map(tx => (
+                    <tr key={tx.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3.5 pl-2 font-medium text-slate-900 dark:text-white">
+                        {tx.reason}
+                      </td>
+                      <td className="py-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                        +{tx.points} pts
+                      </td>
+                      <td className="py-3.5 text-right pr-2 text-slate-400">
+                        {new Date(tx.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
       </div>
     </DashboardLayout>

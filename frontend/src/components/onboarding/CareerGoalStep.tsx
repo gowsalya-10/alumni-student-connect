@@ -1,7 +1,6 @@
 import React from 'react';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { Select } from '@/components/ui/Select';
 import { OnboardingData } from '@/app/onboarding/page';
 
 interface Props {

@@ -1,5 +1,5 @@
 from database import engine, Base
-from models import User, StudentProfile, Skill, StudentSkill, CareerGoal, CareerRoadmap, RoadmapPhase, RoadmapMilestone, Resume, ResumeVersion
+import models
 
 def init_db():
     Base.metadata.create_all(bind=engine)

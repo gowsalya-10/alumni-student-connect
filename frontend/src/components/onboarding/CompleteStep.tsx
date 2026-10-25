@@ -44,7 +44,7 @@ export function CompleteStep() {
           <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 dark:bg-green-900/30 dark:text-green-500">
             <CheckCircle2 className="h-10 w-10" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">You're all set!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">You&apos;re all set!</h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
             Your profile looks great. Taking you to the dashboard...
           </p>

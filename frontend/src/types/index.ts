@@ -73,6 +73,11 @@ export interface AlumniProfile {
   is_verified: boolean;
 }
 
+export interface AlumniMatch extends AlumniProfile {
+  match_pct: number;
+  matching_reasons: string[];
+}
+
 export interface MentorshipRequest {
   id: string;
   student_id: string;

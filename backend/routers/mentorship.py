@@ -84,7 +84,7 @@ def update_alumni_impact(db: Session, alumni_id: str):
         
     requests = db.query(Mentorship).filter(Mentorship.alumni_id == alumni_id).all()
     req_ids = [r.id for r in requests]
-    interactions = db.query(MentorshipInteraction).filter(MentorshipInteraction.mentorship_id.in_(req_ids)).all()
+    interactions = db.query(MentorshipInteraction).filter(MentorshipInteraction.mentorship_id.in_(req_ids)).all() if req_ids else []
     
     impact.total_interactions = len(interactions)
     

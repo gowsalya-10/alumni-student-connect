@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
-import { OnboardingData } from '@/app/onboarding/page';
 import { UploadCloud, FileText, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-interface Props {
-  data: OnboardingData;
-  updateData: (data: Partial<OnboardingData>) => void;
-}
-
-export function ResumeStep({ data, updateData }: Props) {
+export function ResumeStep() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

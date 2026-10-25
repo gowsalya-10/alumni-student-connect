@@ -61,7 +61,7 @@ export default function AlumniProfilePage() {
             setExistingRequest(pendingOrActive);
           }
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load alumni profile.');
       } finally {
         setLoading(false);
@@ -107,8 +107,9 @@ export default function AlumniProfilePage() {
         });
       }, 2000);
       
-    } catch (err: any) {
-      setRequestError(err.response?.data?.detail || 'Failed to send request.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setRequestError(msg || 'Failed to send request.');
     } finally {
       setSubmitting(false);
     }
@@ -157,7 +158,7 @@ export default function AlumniProfilePage() {
         </Button>
 
         <Card className="p-6 md:p-8 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden relative">
-          <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 dark:from-blue-900/40 dark:to-indigo-900/40" />
+          <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-indigo-600/20 via-violet-600/20 to-purple-600/20 dark:from-indigo-900/40 dark:to-violet-900/40" />
           
           <div className="relative pt-12 flex flex-col md:flex-row gap-6 md:gap-10">
             <div className="shrink-0 flex flex-col items-center md:items-start">
@@ -172,12 +173,12 @@ export default function AlumniProfilePage() {
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {profile.name}
                     {profile.is_verified && (
-                      <span className="ml-2 inline-flex items-center text-xs font-medium text-blue-700 bg-blue-100 rounded-full px-2 py-0.5 align-middle dark:bg-blue-900/50 dark:text-blue-400">
-                        Verified Alumni
+                      <span className="ml-2 inline-flex items-center text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full px-2.5 py-0.5 align-middle dark:bg-indigo-950 dark:text-indigo-300">
+                        Verified Alumni Mentor
                       </span>
                     )}
                   </h1>
-                  <p className="text-xl text-blue-600 dark:text-blue-400 font-medium mt-1">
+                  <p className="text-xl text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
                     {profile.current_role} {profile.company ? `at ${profile.company}` : ''}
                   </p>
                 </div>
@@ -335,7 +336,7 @@ export default function AlumniProfilePage() {
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Request Sent Successfully!</h3>
-              <p className="text-sm text-gray-500">We'll notify you when they respond.</p>
+              <p className="text-sm text-gray-500">We&apos;ll notify you when they respond.</p>
             </div>
           ) : (
             <div className="space-y-4 py-4">

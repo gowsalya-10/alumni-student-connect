@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export interface PageContainerProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type PageContainerProps = React.HTMLAttributes<HTMLDivElement>;
 
 export const PageContainer = React.forwardRef<HTMLDivElement, PageContainerProps>(
   ({ className, children, ...props }, ref) => {

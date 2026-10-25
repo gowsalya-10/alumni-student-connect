@@ -1,3 +1,4 @@
+import os
 import uuid
 import json
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File

@@ -81,11 +81,15 @@ async def update_profile(
     if "mentorship_interests" in update_data:
         update_data["mentorship_interests"] = json.dumps(update_data["mentorship_interests"])
 
-    for key, value in update_data.items():
-        setattr(profile, key, value)
-        
-    db.commit()
-    db.refresh(profile)
+    try:
+        for key, value in update_data.items():
+            setattr(profile, key, value)
+            
+        db.commit()
+        db.refresh(profile)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update profile.")
     
     profile_dict = profile.__dict__.copy()
     if profile.mentorship_interests:
@@ -134,28 +138,31 @@ async def update_skills(
     current_user: User = Depends(require_role("student")),
     db: Session = Depends(get_db)
 ):
-    # Remove old skills
-    db.query(StudentSkill).filter(StudentSkill.student_id == current_user.id).delete()
-    
-    added_skills = []
-    for skill_name in skills:
-        skill_name = skill_name.strip()
-        if not skill_name:
-            continue
-            
-        skill = db.query(Skill).filter(Skill.name.ilike(skill_name)).first()
-        if not skill:
-            skill = Skill(name=skill_name, category="general")
-            db.add(skill)
-            db.commit()
-            db.refresh(skill)
-            
-        student_skill = StudentSkill(student_id=current_user.id, skill_id=skill.id, proficiency_pct=50)
-        db.add(student_skill)
-        added_skills.append(skill.name)
+    try:
+        # Remove old skills
+        db.query(StudentSkill).filter(StudentSkill.student_id == current_user.id).delete()
         
-    db.commit()
-    return added_skills
+        added_skills = []
+        for skill_name in skills:
+            skill_name = skill_name.strip()
+            if not skill_name:
+                continue
+                
+            skill = db.query(Skill).filter(Skill.name.ilike(skill_name)).first()
+            if not skill:
+                skill = Skill(name=skill_name, category="general")
+                db.add(skill)
+                db.flush()
+                
+            student_skill = StudentSkill(student_id=current_user.id, skill_id=skill.id, proficiency_pct=50)
+            db.add(student_skill)
+            added_skills.append(skill.name)
+            
+        db.commit()
+        return added_skills
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update skills.")
 
 from models import Resume, CareerRoadmap, RoadmapPhase
 
